@@ -23,7 +23,9 @@ def publish_fasta(output_path: str, sequences: list, variants: list, tissues: li
     ids = [f"{variant}:{tissue}" for (variant, tissue) in zip(variants, tissues)]
     assert len(set(ids)) == len(ids)
 
-    seq_records = [SeqIO.SeqRecord(Seq.Seq(seq), id=id_) for (seq, id_) in zip(sequences, ids)]
+    seq_records = [
+        SeqIO.SeqRecord(Seq.Seq(seq), id=id_, description="") for (seq, id_) in zip(sequences, ids)
+    ]
     SeqIO.write(seq_records, output_path, "fasta")
 
 
