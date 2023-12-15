@@ -13,7 +13,7 @@ def parse_args():
     parser.add_argument("output_dir", type=str)
     parser.add_argument("--eqtl_tsv_path", type=str, default="../merged_eqtl_results.tsv")
     parser.add_argument("--fasta_path", type=str, default="/data/yosef3/scratch/ruchir/data/genomes/hg38/hg38.fa")
-    parser.add_argument("--context_sizes", type=int, nargs="+", default=[21, 51, 101, 201, 501, 101])
+    parser.add_argument("--context_sizes", type=int, nargs="+", default=[21, 51, 101, 201, 501, 1001])
     return parser.parse_args()
 
 
@@ -36,8 +36,8 @@ def main():
 
     fasta = Fasta(args.fasta_path)
     category_map = {
-        5: ["consistent", "consistently correct"],
-        0: ["consistent", "consistently incorrect"],
+        5: ["consistent", "consistently_correct"],
+        0: ["consistent", "consistently_incorrect"],
     }
 
     for context_size in tqdm(args.context_sizes):
