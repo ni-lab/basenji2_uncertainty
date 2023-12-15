@@ -17,63 +17,52 @@ def parse_args():
     return parser.parse_args()
 
 
-def publish_fasta(output_path: str, sequences: list, variants: list):
-    seq_records = []
-    for (seq, variant) in zip(sequences, variants):
-        seq_records.append(SeqIO.SeqRecord(seq=Seq.Seq(seq), id=variant, description=""))
+def publish_fasta(output_path: str, sequences: list, variants: list, tissues: list):
+    assert len(sequences) == len(variants) == len(tissues)
+    
+    ids = [f"{variant}:{tissue}" for (variant, tissue) in zip(variants, tissues)]
+    assert len(set(ids)) == len(ids)
+
+    seq_records = [SeqIO.SeqRecord(Seq.Seq(seq), id=id_) for (seq, id_) in zip(sequences, ids)]
     SeqIO.write(seq_records, output_path, "fasta")
 
 
 def main():
     args = parse_args()
+    os.makedirs(args.output_dir, exist_ok=True)
 
     eqtl_df = pd.read_csv(args.eqtl_tsv_path, sep="\t", header=0, index_col=0)
     eqtl_df = eqtl_df[eqtl_df["finemapped"]].copy()
 
-    os.makedirs(args.output_dir, exist_ok=True)
     fasta = Fasta(args.fasta_path)
-    for context_size in tqdm(args.context_sizes):
-        sequences = defaultdict(list)
-        variants = defaultdict(list)
+    category_map = {
+        5: ["consistent", "consistently correct"],
+        0: ["consistent", "consistently incorrect"],
+    }
 
-        for (variant, n_correct) in zip(eqtl_df["variant"], eqtl_df["n_correct_CAGE_SAD"]):
+    for context_size in tqdm(args.context_sizes):
+        sequences, variants, tissues = defaultdict(list), defaultdict(list), defaultdict(list)
+    
+        for (variant, tissue, n_correct) in zip(
+            eqtl_df["variant"], eqtl_df["tissue"], eqtl_df["n_correct_CAGE_SAD"]
+        ):
             chrom, variant_pos, ref, *_ = variant.split("_")
             variant_pos = int(variant_pos)
-
             start_pos = variant_pos - context_size // 2
             end_pos = start_pos + context_size - 1
-            assert start_pos >= 0
             seq = fasta[chrom][start_pos - 1: end_pos].seq.upper()   
             assert len(seq) == context_size         
             assert seq[context_size // 2] == ref.upper()
 
-            if n_correct == 5:
-                category = "consistently_correct"
-            elif n_correct == 0:
-                category = "consistently_incorrect"
-            else:
-                category = "inconsistent"
+            categories = category_map.get(n_correct, ["inconsistent"])
+            for category in categories:
+                sequences[category].append(seq)
+                variants[category].append(variant)
+                tissues[category].append(tissue)
 
-            sequences[category].append(seq)
-            variants[category].append(variant)
-        
-        publish_fasta(
-            os.path.join(args.output_dir, f"consistently_correct_{context_size}.fasta"),
-            sequences["consistently_correct"],
-            variants["consistently_correct"]
-        )
-        publish_fasta(
-            os.path.join(args.output_dir, f"consistently_incorrect_{context_size}.fasta"),
-            sequences["consistently_incorrect"],
-            variants["consistently_incorrect"]
-        )
-        publish_fasta(
-            os.path.join(args.output_dir, f"inconsistent_{context_size}.fasta"),
-            sequences["inconsistent"],
-            variants["inconsistent"]
-        )
-
-
+        for category in ["consistent", "consistently_correct", "consistently_incorrect", "inconsistent"]:
+            output_path = os.path.join(args.output_dir, f"{category}_{context_size}.fasta")
+            publish_fasta(output_path, sequences[category], variants[category], tissues[category])
 
 
 if __name__ == "__main__":
