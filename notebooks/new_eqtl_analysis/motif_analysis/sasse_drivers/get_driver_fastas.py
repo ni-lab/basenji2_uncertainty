@@ -5,9 +5,9 @@ from pyfaidx import Fasta
 
 DRIVERS_TSV_PATH = "/data/yosef3/scratch/ruchir/repos/EnformerAssessment/Data/SupplementaryTable2.tsv"
 FASTA_PATH = "/data/yosef3/scratch/ruchir/data/genomes/hg38/hg38.fa"
-SUPPORTED_OUTPATH = "supported.fasta"
-UNSUPPORTED_OUTPATH = "unsupported.fasta"
-CONTEXT_SIZE = 21
+CONTEXT_SIZE = 51
+SUPPORTED_OUTPATH = f"supported_{CONTEXT_SIZE}.fasta"
+UNSUPPORTED_OUTPATH = f"unsupported_{CONTEXT_SIZE}.fasta"
 
 
 def read_drivers_df():
